@@ -1,0 +1,41 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "subnetName": {
+            "value": "default"
+        },
+        "virtualNetworkId": {
+            "value": "/subscriptions/2b8648f8-d3b8-45e4-8e16-0fbc5de0ae08/resourceGroups/RG01/providers/Microsoft.Network/virtualNetworks/RG01-vnet"
+        },
+        "virtualMachineName": {
+            "value": "VMTEST-01"
+        },
+        "virtualMachineComputerName": {
+            "value": "VMTEST-01"
+        },
+        "virtualMachineRG": {
+            "value": "RG01"
+        },
+        "OSVersion": {
+            "value": "2019-Datacenter"
+        },
+        "osDiskType": {
+            "value": "Premium_LRS"
+        },
+        "virtualMachineSize": {
+            "value": "Standard_B2ms"
+        },
+        "adminUsername": {
+            "value": "FBADMIN"
+        },
+        "adminPassword": {
+            "value": "kd@9cX9z'!yA#7NxK>SX("
+        },
+        "patchMode": {
+            "value": "Manual"
+        }
+    }
+}
+
+
