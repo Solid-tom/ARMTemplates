@@ -1,5 +1,4 @@
-# ARMTemplates
-EventHub ARM Template
+# EventHub ARM Template
 
 This deploys an eventhub resource with the following secuirty settings:
   - Secure network
