@@ -1,5 +1,6 @@
 # Storage Account
 This templates provisions a storage account using the default setting for Account kind 'StorageV2' and type 'Standard_LRS'.
+
 Enable HNS if required to use Hierarchical Namespace for Azure Data Lake. 
 
 Configuration
