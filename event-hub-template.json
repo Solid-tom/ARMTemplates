@@ -1,0 +1,212 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+    "parameters": {
+        "namespaceName": {
+            "type": "string",
+            "metadata": {
+                "description": "Name of EventHub namespace"
+            }
+        },
+        "eventhubSku": {
+            "type": "string",
+            "allowedValues": [ "Basic", "Standard" ],
+            "defaultValue": "Standard",
+            "metadata": {
+                "description": "The messaging tier for service Bus namespace"
+            }
+        },
+        "skuCapacity": {
+            "type": "int",
+            "allowedValues": [ 1, 2, 4 ],
+            "defaultValue": 1,
+            "metadata": {
+                "description": "MessagingUnits for premium namespace"
+            }
+        },
+        "eventHubName": {
+            "type": "string",
+            "metadata": {
+                "description": "Name of Event Hub"
+            }
+        },
+        "consumerGroupName": {
+            "type": "string",
+            "metadata": {
+                "description": "Name of Consumer Group"
+            }
+        },
+        "location": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().location]",
+            "metadata": {
+                "description": "Location for all resources."
+            }
+        },
+        "isAutoInflateEnabled": {
+            "type": "Bool",
+            "metadata": {
+                "description": "Auto-Inflate automatically scales the number of Throughput Units assigned to your Standard Tier Event Hubs Namespace when your traffic exceeds the capacity of the Throughput Units assigned to it. You can specify a limit to which the Namespace will automatically scale"
+            }
+        },
+        "maximumThroughputUnits": {
+            "type": "int",
+            "allowedValues": [ 1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20 ],
+            "defaultValue": 1,
+            "metadata": {
+                "description": "A single throughput unit allows 1 MB per second of ingress and twice that amount of egress"
+            }
+        },
+        "zoneRedundant": {
+            "type": "Bool",
+            "metadata": {
+                "description": "Provides enhanced availability by spreading replicas across availability zones within one region at no additional cost"
+            }
+        },
+        "vnetName": {
+            "defaultValue": "Enter-vnetName",
+            "type": "String",
+            "metadata": {
+                "description": "Name of the virtual network"
+            }
+        },
+        "subnetName": {
+            "defaultValue": "Enter-subnetName",
+            "type": "String",
+            "metadata": {
+                "description": "Name of the subnet for the service endpoint"
+            }
+        },
+        "departmentName": {
+            "type": "string",
+            "defaultValue": "IT",
+            "allowedValues": [
+                "IT",
+                "Finance",
+                "Sales",
+                "Marketing"
+            ],
+            "metadata": {
+                "description": "Department Tag, needs customization"
+            }
+        },
+        "applicationName": {
+            "type": "string",
+            "defaultValue": "App1",
+            "allowedValues": [
+                "App1",
+                "App2",
+                "App3"
+            ],
+            "metadata": {
+                "description": "Application Tag, , needs customization"
+            }
+        }
+    },
+  "variables": {
+         "virtualNetworkSubnetId": "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]",
+         "namespaceId": "[resourceId('Microsoft.EventHub/namespaces', parameters('namespaceName'))]"
+  },
+  "resources": [
+    {
+        "apiVersion": "2018-01-01-preview",
+        "name": "[parameters('namespaceName')]",
+        "type": "Microsoft.EventHub/namespaces",
+        "location": "[parameters('location')]",
+        "sku": {
+            "name": "[parameters('eventhubSku')]",
+            "tier": "[parameters('eventhubSku')]",
+            "capacity": "[parameters('skuCapacity')]"
+        },
+        "tags": {
+            "Department": "[parameters('departmentName')]",
+            "Application": "[parameters('applicationName')]"
+        },
+        "properties": {
+            "isAutoInflateEnabled": "[parameters('isAutoInflateEnabled')]",
+            "maximumThroughputUnits": "[parameters('maximumThroughputUnits')]",
+            "zoneRedundant": "[parameters('zoneRedundant')]",
+            "kafkaEnabled": true
+        },
+        "resources": [
+            {
+                "apiVersion": "2017-04-01",
+                "name": "[parameters('eventHubName')]",
+                "type": "eventhubs",
+                "dependsOn": [
+                    "[resourceId('Microsoft.EventHub/namespaces/', parameters('namespaceName'))]"
+                ],
+                "properties": {},
+                "resources": [
+                    {
+                        "apiVersion": "2017-04-01",
+                        "name": "[parameters('consumerGroupName')]",
+                        "type": "consumergroups",
+                        "dependsOn": [ "[parameters('eventHubName')]" ],
+                        "properties": {
+                            "userMetadata": "User Metadata goes here"
+                        }
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "type": "Microsoft.EventHub/namespaces/networkRuleSets",
+        "apiVersion": "2018-01-01-preview",
+        "name": "[concat(parameters('namespaceName'), '/default')]",
+        "location": "East US",
+        "dependsOn": [
+            "[resourceId('Microsoft.EventHub/namespaces', parameters('namespaceName'))]"
+        ],
+        "properties": {
+            "defaultAction": "Deny",
+            "virtualNetworkRules": [
+                {
+                    "subnet": {
+                        "id": "[concat(variables('virtualNetworkSubnetId'), '/subnets/', parameters('subnetName'))]"
+                    },
+                    "ignoreMissingVnetServiceEndpoint": false
+                }
+            ],
+            "ipRules": []
+        }
+    },
+    {
+        "type": "Microsoft.Network/privateEndpoints",
+        "apiVersion": "2020-05-01",
+        "name": "[concat(parameters('namespaceName'), '-private-endpoint')]",
+        "location": "[resourceGroup().location]",
+        "tags": {
+            "Resource": "[parameters('namespaceName')]",
+            "Department": "[parameters('departmentName')]",
+            "Application": "[parameters('applicationName')]"
+        },
+        "dependsOn": [
+            "[parameters('namespaceName')]"
+        ],
+        "properties": {
+            "privateLinkServiceConnections": [
+                {
+                    "name": "[concat(parameters('namespaceName'), '-private-endpoint')]",
+                    "properties": {
+                        "privateLinkServiceId": "[variables('namespaceId')]",
+                        "groupIds": [
+                            "namespace"
+                        ],
+                        "privateLinkServiceConnectionState": {
+                            "status": "Approved",
+                            "description": "Auto-Approved",
+                            "actionsRequired": "None"
+                        }
+                    }
+                }
+            ],
+            "manualPrivateLinkServiceConnections": [],
+            "subnet": {
+                "id": "[concat(variables('virtualNetworkSubnetId'), '/subnets/', parameters('subnetName'))]"
+            }
+        }
+    }
+  ]
+}
