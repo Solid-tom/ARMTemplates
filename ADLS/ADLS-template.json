@@ -1,0 +1,96 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "storageAccountName": {
+            "type": "string",
+            "metadata": {
+                "description": "Specifies the name of the Azure Storage account."
+            }
+        },
+        "location": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().location]",
+            "metadata": {
+                "description": "Specifies the location in which the Azure Storage resources should be deployed."
+            }
+        },
+        "departmentName": {
+            "type": "string",
+            "defaultValue": "IT",
+            "allowedValues": [
+                "IT",
+                "Finance",
+                "Sales",
+                "Marketing"
+            ],
+            "metadata": {
+                "description": "Department Tag, needs customization"
+            }
+        },
+        "applicationName": {
+            "type": "string",
+            "defaultValue": "App1",
+            "allowedValues": [
+                "App1",
+                "App2",
+                "App3"
+            ],
+            "metadata": {
+                "description": "Application Tag, , needs customization"
+            }
+        }
+    },
+    "variables": {},
+    "resources": [
+        {
+            "type": "Microsoft.Storage/storageAccounts",
+            "apiVersion": "2020-08-01-preview",
+            "name": "[parameters('storageAccountName')]",
+            "location": "[parameters('location')]",
+            "sku": {
+                "name": "Standard_GRS",
+                "tier": "Standard"
+            },
+            "tags": {
+                "Department": "[parameters('departmentName')]",
+                "Application": "[parameters('applicationName')]"
+            },
+            "kind": "StorageV2",
+            "properties": {
+                "routingPreference": {
+                    "routingChoice": "MicrosoftRouting",
+                    "publishMicrosoftEndpoints": true,
+                    "publishInternetEndpoints": false
+                },
+                "azureFilesIdentityBasedAuthentication": {
+                    "directoryServiceOptions": "None"
+                },
+                "minimumTlsVersion": "TLS1_2",
+                "allowBlobPublicAccess": false,
+                "networkAcls": {
+                    "bypass": "AzureServices",
+                    "virtualNetworkRules": [],
+                    "ipRules": [],
+                    "defaultAction": "Deny"
+                },
+                "supportsHttpsTrafficOnly": true,
+                "encryption": {
+                    "services": {
+                        "file": {
+                            "keyType": "Account",
+                            "enabled": true
+                        },
+                        "blob": {
+                            "keyType": "Account",
+                            "enabled": true
+                        }
+                    },
+                    "keySource": "Microsoft.Storage"
+                },
+                "accessTier": "Hot",
+                "isHnsEnabled": "true"
+            }
+        }
+    ]
+}
