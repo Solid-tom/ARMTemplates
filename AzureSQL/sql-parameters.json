@@ -3,13 +3,13 @@
   "contentVersion": "1.0.0.0",
   "parameters": {
     "sqlserverName": {
-      "value": "tomosql11"
+      "value": null
     },
     "databaseName": {
-      "value": "tomodb11"
+      "value": null
     },
     "sqlAdministratorLogin": {
-      "value": "adadmin"
+      "value": null
     },
     "sqlAdministratorLoginPassword": {
       "value": null
@@ -21,7 +21,7 @@
       "value": "Basic"
     },
     "location": {
-      "value": "eastus"
+      "value": "[resourceGroup().location]"
     },
     "targetSubResource": {
       "value": [
@@ -29,10 +29,10 @@
       ]
     },
     "vnetName": {
-      "value": "DtlTestLab"
+      "value": "VNet1"
     },
     "subnetName": {
-      "value": "testlabsub0"
+      "value": "subnet1"
     },
     "departmentName": {
       "value": "IT"
