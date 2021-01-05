@@ -1,0 +1,204 @@
+{
+    "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "sqlserverName": {
+            "type": "String",
+            "metadata": {
+                "description": "The name of the SQL Server"
+            }
+        },
+        "databaseName": {
+            "type": "String",
+            "metadata": {
+                "description": "The name of the database"
+            }
+        },
+        "sqlAdministratorLogin": {
+            "type": "String",
+            "metadata": {
+                "description": "The admin user of the SQL Server"
+            }
+        },
+        "sqlAdministratorLoginPassword": {
+            "type": "SecureString",
+            "metadata": {
+                "description": "The password of the admin user of the SQL Server"
+            }
+        },
+        "databaseCollation": {
+            "defaultValue": "SQL_Latin1_General_CP1_CI_AS",
+            "allowedValues": [
+                "SQL_Latin1_General_CP1_CI_AS",
+                "Latin1_General_100_CI_AS_SC"
+            ],
+            "type": "String",
+            "metadata": {
+                "description": "SQL Server collation."
+            }
+        },
+        "databaseSku": {
+            "defaultValue": "Basic",
+            "allowedValues": [
+                "Basic",
+                "Standard",
+                "Premium"
+            ],
+            "type": "String",
+            "metadata": {
+                "description": "SQL Database service tier."
+            }
+        },
+        "location": {
+            "defaultValue": "[resourceGroup().location]",
+            "type": "String",
+            "metadata": {
+                "description": "Specifies the location in which the Azure Storage resources should be deployed."
+            }
+        },
+        "targetSubResource": {
+            "defaultValue": [
+                "sqlServer"
+            ],
+            "type": "Array"
+        },
+        "vnetName": {
+            "defaultValue": "VNet1",
+            "type": "String",
+            "metadata": {
+                "description": "Name of the virtual network"
+            }
+        },
+        "subnetName": {
+            "defaultValue": "subnet1",
+            "type": "String",
+            "metadata": {
+                "description": "Name of the subnet for the service endpoint"
+            }
+        },
+        "departmentName": {
+            "type": "string",
+            "defaultValue": "IT",
+            "allowedValues": [
+                "IT",
+                "Finance",
+                "Sales",
+                "Marketing"
+            ],
+            "metadata": {
+                "description": "Department Tag, needs customization"
+            }
+        },
+        "applicationName": {
+            "type": "string",
+            "defaultValue": "App1",
+            "allowedValues": [
+                "App1",
+                "App2",
+                "App3"
+            ],
+            "metadata": {
+                "description": "Application Tag, , needs customization"
+            }
+        }
+    },
+    "variables": {
+        "SQLapiVersion": "2020-02-02-preview",
+        "privateEndpointName": "[concat(parameters('sqlserverName'), '-private')]",
+        "transparentDataEncryption": "Enabled",
+        "virtualNetworkSubnetId": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnetName'), parameters('subnetName'))]",
+        "privateLinkResource": "[resourceId('Microsoft.Sql/servers', parameters('sqlserverName'))]"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Sql/servers",
+            "apiVersion": "[variables('SQLapiVersion')]",
+            "name": "[parameters('sqlserverName')]",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "administratorLogin": "[parameters('sqlAdministratorLogin')]",
+                "administratorLoginPassword": "[parameters('sqlAdministratorLoginPassword')]",
+                "version": "12.0",
+                "minimalTlsVersion": "1.2",
+                "publicNetworkAccess": "Disabled"
+            },
+            "tags": {
+                "Department": "[parameters('departmentName')]",
+                "Application": "[parameters('applicationName')]"
+            },
+            "resources": [
+                {
+                    "type": "Microsoft.Network/privateEndpoints",
+                    "apiVersion": "2020-03-01",
+                    "name": "[variables('privateEndpointName')]",
+                    "location": "[parameters('location')]",
+                    "dependsOn": [
+                        "[parameters('sqlserverName')]"
+                    ],
+                    "tags": {
+                        "Resource": "[parameters('sqlserverName')]",
+                        "Department": "[parameters('departmentName')]",
+                        "Application": "[parameters('applicationName')]"
+                    },
+                    "properties": {
+                        "subnet": {
+                            "id": "[variables('virtualNetworkSubnetId')]"
+                        },
+                        "privateLinkServiceConnections": [
+                            {
+                                "name": "[variables('privateEndpointName')]",
+                                "properties": {
+                                    "privateLinkServiceId": "[variables('privateLinkResource')]",
+                                    "groupIds": "[parameters('targetSubResource')]"
+                                }
+                            }
+                        ]
+                    }
+                },
+                {
+                    "type": "connectionPolicies",
+                    "apiVersion": "2014-04-01",
+                    "name": "Default",
+                    "dependsOn": [
+                        "[parameters('sqlserverName')]"
+                    ],
+                    "properties": {
+                        "connectionType": "Redirect"
+                    }
+                },
+                {
+                    "type": "databases",
+                    "apiVersion": "[variables('SQLapiVersion')]",
+                    "name": "[parameters('databaseName')]",
+                    "location": "[resourceGroup().location]",
+                    "tags": {
+                        "Resource": "[parameters('sqlserverName')]",
+                        "Department": "[parameters('departmentName')]",
+                        "Application": "[parameters('applicationName')]"
+                    },
+                    "dependsOn": [
+                        "[parameters('sqlserverName')]"
+                    ],
+                    "properties": {
+                        "edition": "[parameters('databaseSku')]",
+                        "collation": "[parameters('databaseCollation')]"
+                    },
+                    "resources": [
+                        {
+                            "type": "transparentDataEncryption",
+                            "apiVersion": "2017-03-01-preview",
+                            "name": "current",
+                            "dependsOn": [
+                                "[parameters('databaseName')]"
+                            ],
+                            "properties": {
+                                "status": "[variables('transparentDataEncryption')]"
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "outputs": {}
+}

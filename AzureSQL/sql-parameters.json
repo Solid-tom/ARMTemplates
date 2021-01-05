@@ -1,0 +1,44 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "sqlserverName": {
+      "value": "tomosql11"
+    },
+    "databaseName": {
+      "value": "tomodb11"
+    },
+    "sqlAdministratorLogin": {
+      "value": "adadmin"
+    },
+    "sqlAdministratorLoginPassword": {
+      "value": null
+    },
+    "databaseCollation": {
+      "value": "SQL_Latin1_General_CP1_CI_AS"
+    },
+    "databaseSku": {
+      "value": "Basic"
+    },
+    "location": {
+      "value": "eastus"
+    },
+    "targetSubResource": {
+      "value": [
+        "sqlServer"
+      ]
+    },
+    "vnetName": {
+      "value": "DtlTestLab"
+    },
+    "subnetName": {
+      "value": "testlabsub0"
+    },
+    "departmentName": {
+      "value": "IT"
+    },
+    "applicationName": {
+      "value": "App1"
+    }
+  }
+}
