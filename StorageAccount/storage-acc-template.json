@@ -1,0 +1,199 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "storageAccountName": {
+            "type": "string",
+            "metadata": {
+                "description": "Specifies the name of the Azure Storage account."
+            }
+        },
+        "location": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().location]",
+            "metadata": {
+                "description": "Specifies the location in which the Azure Storage resources should be deployed."
+            }
+        },
+        "accountKind": {
+            "type": "string",
+            "defaultValue": "StorageV2",
+            "allowedValues": [
+                "StorageV2",
+                "Storage",
+                "BlobStorage",
+                "FileStorage",
+                "BlockBlobStorage"
+            ],
+            "metadata": {
+                "description": "General purpose storage accounts provide storage for blobs, files, tables, and queues in a unified account. Blob storage accounts are specialized for storing blob data and support choosing an access tier, which allows you to specify how frequently data in the account is accessed. Choose an access tier that matches your storage needs and optimizes costs."
+            }
+        },
+        "accountType": {
+            "type": "string",
+            "defaultValue": "Standard_GRS",
+            "allowedValues": [
+                "Standard_LRS",
+                "Standard_ZRS",
+                "Standard_GRS"
+            ],
+            "metadata": {
+                "description": "The data in your Azure storage account is always replicated to ensure durability and high availability. Choose a replication strategy that matches your durability requirements. Some settings can't be changed after the storage account is created."
+            }
+        },
+        "accessTier": {
+            "type": "string",
+            "defaultValue": "Standard_GRS",
+            "allowedValues": [
+                "Hot",
+                "Cool",
+                "Archive"
+            ],
+            "metadata": {
+                "description": "Optimize storage costs by placing your data in the appropriate access tier."
+            }
+        },
+        "HnsEnabled": {
+            "type": "Bool",
+            "metadata": {
+                "description": "Required to use Hierarchical Namespace for Data Lake"
+            }
+        },
+        "vnetName": {
+            "defaultValue": "Enter-vnetName",
+            "type": "String",
+            "metadata": {
+                "description": "Name of the virtual network"
+            }
+        },
+        "subnetName": {
+            "defaultValue": "Enter-subnetName",
+            "type": "String",
+            "metadata": {
+                "description": "Name of the subnet for the service endpoint"
+            }
+        },
+        "departmentName": {
+            "type": "string",
+            "defaultValue": "IT",
+            "allowedValues": [
+                "IT",
+                "Finance",
+                "Sales",
+                "Marketing"
+            ],
+            "metadata": {
+                "description": "Department Tag, needs customization"
+            }
+        },
+        "applicationName": {
+            "type": "string",
+            "defaultValue": "App1",
+            "allowedValues": [
+                "App1",
+                "App2",
+                "App3"
+            ],
+            "metadata": {
+                "description": "Application Tag, , needs customization"
+            }
+        }
+    },
+    "variables": {
+        "virtualNetworkSubnetId": "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]",
+        "storageAccountId": "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Storage/storageAccounts",
+            "apiVersion": "2020-08-01-preview",
+            "name": "[parameters('storageAccountName')]",
+            "location": "[parameters('location')]",
+            "sku": {
+                "name": "[parameters('accountType')]",
+                "tier": "Standard"
+            },
+            "tags": {
+                "Department": "[parameters('departmentName')]",
+                "Application": "[parameters('applicationName')]"
+            },
+            "kind": "[parameters('AccountKind')]",
+            "properties": {
+                "routingPreference": {
+                    "routingChoice": "MicrosoftRouting",
+                    "publishMicrosoftEndpoints": true,
+                    "publishInternetEndpoints": false
+                },
+                "azureFilesIdentityBasedAuthentication": {
+                    "directoryServiceOptions": "None"
+                },
+                "minimumTlsVersion": "TLS1_2",
+                "allowBlobPublicAccess": false,
+                "networkAcls": {
+                    "bypass": "AzureServices",
+                    "virtualNetworkRules": [
+                        {
+                            "id": "[concat(variables('virtualNetworkSubnetId'), '/subnets/', parameters('subnetName'))]",
+                            "action": "Allow",
+                            "state": "Succeeded"
+                        }
+                    ],
+                    "ipRules": [],
+                    "defaultAction": "Deny"
+                },
+                "isHnsEnabled": "[parameters('HnsEnabled')]",
+                "supportsHttpsTrafficOnly": true,
+                "encryption": {
+                    "services": {
+                        "file": {
+                            "keyType": "Account",
+                            "enabled": true
+                        },
+                        "blob": {
+                            "keyType": "Account",
+                            "enabled": true
+                        }
+                    },
+                    "keySource": "Microsoft.Storage"
+                },
+                "accessTier": "[parameters('accessTier')]"
+            }
+        },
+        {
+            "type": "Microsoft.Network/privateEndpoints",
+            "apiVersion": "2020-05-01",
+            "name": "[concat(parameters('storageAccountName'), '-private-endpoint')]",
+            "location": "[resourceGroup().location]",
+            "tags": {
+                "Resource": "[parameters('storageAccountName')]",
+                "Department": "[parameters('departmentName')]",
+                "Application": "[parameters('applicationName')]"
+            },
+            "dependsOn": [
+                "[parameters('storageAccountName')]"
+            ],
+            "properties": {
+                "privateLinkServiceConnections": [
+                    {
+                        "name": "[concat(parameters('storageAccountName'), '-private-endpoint')]",
+                        "properties": {
+                            "privateLinkServiceId": "[variables('storageAccountId')]",
+                            "groupIds": [
+                                "blob"
+                            ],
+                            "privateLinkServiceConnectionState": {
+                                "status": "Approved",
+                                "description": "Auto-Approved",
+                                "actionsRequired": "None"
+                            }
+                        }
+                    }
+                ],
+                "manualPrivateLinkServiceConnections": [],
+                "subnet": {
+                    "id": "[concat(variables('virtualNetworkSubnetId'), '/subnets/', parameters('subnetName'))]"
+                }
+            }
+        }
+    ]
+}
