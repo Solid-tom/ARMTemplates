@@ -29,10 +29,10 @@
       ]
     },
     "vnetName": {
-      "value": "VNet1"
+      "value": null
     },
     "subnetName": {
-      "value": "subnet1"
+      "value": null
     },
     "departmentName": {
       "value": "IT"
