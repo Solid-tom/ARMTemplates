@@ -43,7 +43,7 @@
         },
         "accessTier": {
             "type": "string",
-            "defaultValue": "Standard_GRS",
+            "defaultValue": "Hot",
             "allowedValues": [
                 "Hot",
                 "Cool",
